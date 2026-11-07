@@ -1,0 +1,148 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VRTX MUSIC</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- HOME SCREEN -->
+  <div id="appHome">
+    <main class="home-screen">
+     <header class="brand">
+  <div class="brand-logo">
+    <div class="brand-top">
+      <span class="brand-note">♫</span>
+      <span class="brand-vrtx">VRTX</span>
+    </div>
+    <div class="brand-music">━━━━ MUSIC ━━━━</div>
+  </div>
+
+  <p class="tagline">ESCAPE FROM REALITY</p>
+</header>
+
+      <button class="all-songs" id="allSongsBtn">
+        <span class="music-icon">♫</span>
+<span>ENTER WORLD</span>
+        <span class="arrow">›</span>
+      </button>
+    </main>
+  </div>
+
+  <!-- LIBRARY SCREEN -->
+
+<!-- LIBRARY SCREEN -->
+
+ <section class="library" id="library">
+
+  <h2>LIBRARY</h2>
+
+  <nav class="music-tabs">
+    <button data-tab="songs">♫ Songs</button>
+    <button data-tab="playlists">☷ Playlists</button>
+    <button data-tab="recent">◷ Recently Played</button>
+    <button data-tab="add">＋ Add Songs</button>
+  </nav>
+  <button id="vrtxAiBtn" class="vrtx-ai-btn">
+  🤖 VRTX AI
+</button>
+
+  <div id="selectionToolbar" style="display: none;">
+    <span id="selectedCount">0 Selected</span>
+    <button id="selectionMenuBtn">⋮</button>
+
+    <div id="selectionMenu" style="display: none;">
+      <button id="createPlaylistBtn">＋ Create Playlist</button>
+      <button id="movePlaylistBtn">↗ Move to Playlist</button>
+      <button id="deleteSongsBtn">🗑 Delete</button>
+    </div>
+  </div>
+  <div class="player-card" id="playerCard">
+
+  <img
+    class="cover-art"
+    id="coverArt"
+    src="https://placehold.co/600x600/102B49/35A8FF?text=VRTX+MUSIC"
+    alt="Album cover"
+  >
+
+  <div class="track-title" id="trackTitle">No song selected</div>
+  <div class="track-artist" id="trackArtist">Choose a song to play</div>
+
+  <div class="progress-track" id="progressTrack">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+
+  <div class="player-controls">
+    <button class="menu-button" id="equalizerBtn">⋮</button>
+    <button id="prevBtn">|◀</button>
+    <button class="play-button" id="playBtn">▶</button>
+    <button id="nextBtn">▶|</button>
+    <button class="menu-button" id="optionsBtn">⋮</button>
+  </div>
+
+  <div class="popup-menu" id="equalizerMenu">
+    <h3>EQUALIZER</h3>
+    <button data-eq="normal">Normal</button>
+    <button data-eq="bass">Bass Boost</button>
+    <button data-eq="vocal">Vocal Boost</button>
+    <button data-eq="treble">Treble</button>
+  </div>
+
+  <div class="popup-menu" id="optionsMenu">
+    <h3>PLAY OPTIONS</h3>
+    <button id="repeatBtn">Repeat: Off</button>
+    <button id="shuffleBtn">Shuffle: Off</button>
+  </div>
+
+</div>
+
+</section>
+<!-- VRTX AI SCREEN -->
+<section id="vrtxAiScreen" class="library" style="display: none;">
+
+  <button id="backFromAiBtn">← Back to Library</button>
+
+  <h2>🤖 VRTX AI</h2>
+
+  <p>ESCAPE FROM REALITY</p>
+
+  <button id="clearChatBtn">🗑 CLEAR CHAT</button>
+
+  <div id="aiChatBox">
+    <p>Hi! I'm VRTX AI 🎵</p>
+    <p>How can I help you?</p>
+  </div>
+
+  <div class="ai-input-area">
+    <input
+      type="text"
+      id="aiInput"
+      placeholder="Ask VRTX AI..."
+    >
+    <button id="aiSendBtn">➤</button>
+  </div>
+
+</section>
+
+<!-- ALL SONGS SCREEN -->
+<section class="library" id="allSongsScreen" style="display: none;">
+
+  <button id="backToLibraryBtn">← Back to Library</button>
+
+  <h2>ALL SONGS</h2>
+
+  <div id="songList"></div>
+
+</section>
+
+<footer class="app-footer">
+  DEVELOPED BY HARI
+</footer>
+
+<script src="script.js?v=3"></script>
+</body>
+</html>
