@@ -145,5 +145,14 @@
 </footer>
 
 <script src="script.js?v=3"></script>
+  <script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js")
+      .then(() => console.log("VRTX MUSIC ready"))
+      .catch((error) => console.error(error));
+  });
+}
+  </script>
 </body>
 </html>
