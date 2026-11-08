@@ -1,4 +1,8 @@
 
+
+
+
+
 // =====================================
 // VRTX MUSIC - MAIN JAVASCRIPT
 // =====================================
@@ -8,6 +12,7 @@ const allSongsBtn = document.getElementById("allSongsBtn");
 const library = document.getElementById("library");
 const appHome = document.getElementById("appHome");
 const songList = document.getElementById("songList");
+console.log("VRTX MUSIC JS LOADED");
 
 const coverArt = document.getElementById("coverArt");
 const trackTitle = document.getElementById("trackTitle");
@@ -43,6 +48,71 @@ const backFromAiBtn = document.getElementById("backFromAiBtn");
 
 // App Data
 let songs = [];
+// =====================================
+// VRTX MUSIC DATABASE
+// =====================================
+
+const DB_NAME = "VRTXMusicDB";
+const DB_VERSION = 1;
+const STORE_NAME = "songs";
+
+function openSongsDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+    request.onupgradeneeded = () => {
+      const db = request.result;
+
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, {
+          keyPath: "id",
+          autoIncrement: true
+        });
+      }
+    };
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+async function saveSongToDB(file) {
+  const db = await openSongsDB();
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, "readwrite");
+    const request = transaction.objectStore(STORE_NAME).add({
+      name: file.name,
+      file: file
+    });
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+
+    transaction.oncomplete = () => db.close();
+    transaction.onerror = () => {
+      db.close();
+      reject(transaction.error);
+    };
+  });
+}
+
+async function getSavedSongsFromDB() {
+  const db = await openSongsDB();
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, "readonly");
+    const request = transaction.objectStore(STORE_NAME).getAll();
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+
+    transaction.oncomplete = () => db.close();
+    transaction.onerror = () => {
+      db.close();
+      reject(transaction.error);
+    };
+  });
+}
 let recentSongs = [];
 let playlists = [];
 
@@ -144,20 +214,26 @@ backToLibraryBtn.addEventListener("click", () => {
   library.style.display = "block";
 });
 
-
 // =====================================
 // ADD SONGS
 // =====================================
 
-fileInput.addEventListener("change", event => {
+fileInput.addEventListener("change", async event => {
   const files = Array.from(event.target.files);
 
-  files.forEach(file => {
-    songs.push({
-      name: file.name,
-      url: URL.createObjectURL(file)
-    });
-  });
+  for (const file of files) {
+    try {
+      const id = await saveSongToDB(file);
+
+      songs.push({
+        id: id,
+        name: file.name,
+        url: URL.createObjectURL(file)
+      });
+    } catch (error) {
+      console.error("Song save failed:", error);
+    }
+  }
 
   fileInput.value = "";
 
@@ -772,6 +848,7 @@ shuffleBtn.addEventListener("click", () => {
 });
 
 
+
 // =====================================
 // INITIAL SETUP
 // =====================================
@@ -785,6 +862,8 @@ const aiChatBox = document.getElementById("aiChatBox");
 const aiInput = document.getElementById("aiInput");
 const aiSendBtn = document.getElementById("aiSendBtn");
 const clearChatBtn = document.getElementById("clearChatBtn");
+let aiPreviewAudio = null;
+let libraryWasPlaying = false;
 
 function addChatMessage(message, sender) {
   const chatMessage = document.createElement("div");
@@ -854,8 +933,140 @@ function showTypingIndicator() {
   aiChatBox.appendChild(typing);
   aiChatBox.scrollTop = aiChatBox.scrollHeight;
 }
+// =====================================
+// VRTX AI SONG SEARCH
+// =====================================
 
-aiSendBtn.addEventListener("click", () => {
+async function searchVrtxSongs(query) {
+
+  // Search in app library
+  const localMatches = songs.filter(song =>
+    song.name.toLowerCase().includes(query.toLowerCase())
+  );
+
+if (localMatches.length > 0) {
+
+  addChatMessage(
+    "🎵 Found in your VRTX library:\n" +
+    localMatches.map(song => "• " + song.name).join("\n"),
+    "ai"
+  );
+
+  const bubble = aiChatBox.lastElementChild.querySelector(".chat-bubble");
+
+  localMatches.forEach(song => {
+
+    const playButton = document.createElement("button");
+
+    playButton.textContent = "▶ PLAY " + song.name;
+
+    playButton.addEventListener("click", () => {
+      const index = songs.indexOf(song);
+
+      if (index !== -1) {
+        playSong(index);
+      }
+    });
+
+    bubble.appendChild(document.createElement("br"));
+    bubble.appendChild(playButton);
+
+  });
+
+  return;
+}
+
+  // Search internet music catalogue
+  try {
+    const response = await fetch(
+      "https://itunes.apple.com/search?term=" +
+      encodeURIComponent(query) +
+      "&entity=song&limit=5"
+    );
+
+    const data = await response.json();
+
+    if (data.results.length === 0) {
+      addChatMessage("Sorry! No matching songs found.", "ai");
+      return;
+    }
+
+    const results = data.results;
+
+addChatMessage(
+  "🌐 Internet song results:",
+  "ai"
+);
+
+const bubble = aiChatBox.lastElementChild.querySelector(".chat-bubble");
+
+results.forEach((song, index) => {
+
+  const songInfo = document.createElement("p");
+
+  songInfo.textContent =
+    `${index + 1}. ${song.trackName} - ${song.artistName}`;
+
+  const previewButton = document.createElement("button");
+
+  previewButton.textContent = "▶ PREVIEW";
+
+  previewButton.addEventListener("click", () => {
+
+    if (!song.previewUrl) {
+      addChatMessage("Preview not available for this song.", "ai");
+      return;
+    }
+
+    const shouldResumeLibrary =
+  libraryWasPlaying || (!audio.paused && !audio.ended);
+
+if (aiPreviewAudio) {
+  aiPreviewAudio.pause();
+  aiPreviewAudio.currentTime = 0;
+}
+
+libraryWasPlaying = shouldResumeLibrary;
+
+if (!audio.paused && !audio.ended) {
+  audio.pause();
+}
+
+    aiPreviewAudio = new Audio(song.previewUrl);
+
+    aiPreviewAudio.play().catch(() => {
+      addChatMessage("Unable to play preview.", "ai");
+    });
+
+    previewButton.textContent = "▶ PLAYING";
+
+    aiPreviewAudio.onended = () => {
+  previewButton.textContent = "▶ PREVIEW";
+
+  if (libraryWasPlaying) {
+    audio.play().catch(() => {});
+    libraryWasPlaying = false;
+  }
+};
+
+  });
+    bubble.appendChild(songInfo);
+  bubble.appendChild(previewButton);
+
+});
+      } catch (error) {
+    addChatMessage(
+      "Internet search failed. Please check your connection.",
+      "ai"
+    );
+  }
+}
+
+// =====================================
+// VRTX AI SEND MESSAGE
+// =====================================
+
+aiSendBtn.addEventListener("click", async () => {
   const message = aiInput.value.trim();
 
   if (!message) return;
@@ -866,19 +1077,27 @@ aiSendBtn.addEventListener("click", () => {
 
   showTypingIndicator();
 
-  setTimeout(() => {
-    const typing = document.getElementById("typingIndicator");
-
-    if (typing) {
-      typing.remove();
-    }
+  try {
+    await searchVrtxSongs(message);
+  } catch (error) {
+    console.error("VRTX AI Error:", error);
 
     addChatMessage(
-      "I'm getting ready to help you! Real AI connection is coming soon.",
+      "Something went wrong. Please try again!",
       "ai"
     );
-  }, 1500);
+  }
+
+  const typing = document.getElementById("typingIndicator");
+
+  if (typing) {
+    typing.remove();
+  }
 });
+
+// =====================================
+// ENTER KEY SEND
+// =====================================
 
 aiInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
@@ -901,3 +1120,25 @@ clearChatBtn.addEventListener("click", () => {
     <p>How can I help you?</p>
   `;
 });
+// =====================================
+// LOAD SAVED SONGS
+// =====================================
+
+async function loadSavedSongs() {
+  try {
+    const savedSongs = await getSavedSongsFromDB();
+
+    songs = savedSongs.map(song => ({
+      id: song.id,
+      name: song.name,
+      url: URL.createObjectURL(song.file)
+    }));
+
+    showSongs();
+
+  } catch (error) {
+    console.error("Failed to load saved songs:", error);
+  }
+}
+loadSavedSongs();
+      
